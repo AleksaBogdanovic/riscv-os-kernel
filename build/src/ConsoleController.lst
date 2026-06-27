@@ -1,0 +1,1328 @@
+GAS LISTING /tmp/cca2kZUO.s 			page 1
+
+
+   1              		.file	"ConsoleController.cpp"
+   2              		.option pic
+   3              		.option norelax
+   4              		.text
+   5              	.Ltext0:
+   6              		.align	2
+   7              		.globl	_ZN17ConsoleController12txThreadBodyEPv
+   9              	_ZN17ConsoleController12txThreadBodyEPv:
+  10              	.LFB35:
+  11              		.file 1 "src/ConsoleController.cpp"
+   1:src/ConsoleController.cpp **** #include "../h/ConsoleController.hpp"
+   2:src/ConsoleController.cpp **** #include "../h/TCB.hpp"
+   3:src/ConsoleController.cpp **** 
+   4:src/ConsoleController.cpp **** BoundedBuffer* ConsoleController::txBuffer = nullptr;
+   5:src/ConsoleController.cpp **** BoundedBuffer* ConsoleController::rxBuffer = nullptr;
+   6:src/ConsoleController.cpp **** 
+   7:src/ConsoleController.cpp **** void ConsoleController::init()
+   8:src/ConsoleController.cpp **** {
+   9:src/ConsoleController.cpp ****     txBuffer = new BoundedBuffer();
+  10:src/ConsoleController.cpp ****     rxBuffer = new BoundedBuffer();
+  11:src/ConsoleController.cpp ****     createTxThread();
+  12:src/ConsoleController.cpp **** }
+  13:src/ConsoleController.cpp **** 
+  14:src/ConsoleController.cpp **** void ConsoleController::deinit()
+  15:src/ConsoleController.cpp **** {
+  16:src/ConsoleController.cpp ****     delete txBuffer;
+  17:src/ConsoleController.cpp ****     delete rxBuffer;
+  18:src/ConsoleController.cpp **** }
+  19:src/ConsoleController.cpp **** 
+  20:src/ConsoleController.cpp **** void ConsoleController::putc(char c)
+  21:src/ConsoleController.cpp **** {
+  22:src/ConsoleController.cpp ****     txBuffer->append(c);
+  23:src/ConsoleController.cpp **** }
+  24:src/ConsoleController.cpp **** 
+  25:src/ConsoleController.cpp **** char ConsoleController::getc()
+  26:src/ConsoleController.cpp **** {
+  27:src/ConsoleController.cpp ****     return rxBuffer->take();
+  28:src/ConsoleController.cpp **** }
+  29:src/ConsoleController.cpp **** 
+  30:src/ConsoleController.cpp **** void ConsoleController::consoleHandler()
+  31:src/ConsoleController.cpp **** {
+  32:src/ConsoleController.cpp ****     int irq = plic_claim();
+  33:src/ConsoleController.cpp ****     if (irq == 0x0a) //keyboard interrupt
+  34:src/ConsoleController.cpp ****     {
+  35:src/ConsoleController.cpp ****         volatile char status = *((char *) CONSOLE_STATUS);
+  36:src/ConsoleController.cpp ****         while (status & 1)
+  37:src/ConsoleController.cpp ****         {
+  38:src/ConsoleController.cpp ****             char c = *((char*) CONSOLE_RX_DATA);
+  39:src/ConsoleController.cpp ****             if (!rxBuffer->isFull()) rxBuffer->append(c);
+  40:src/ConsoleController.cpp ****             status = *((char*) CONSOLE_STATUS);
+  41:src/ConsoleController.cpp ****         }
+  42:src/ConsoleController.cpp ****     }
+  43:src/ConsoleController.cpp ****     plic_complete(irq);
+  44:src/ConsoleController.cpp **** 
+  45:src/ConsoleController.cpp **** }
+  46:src/ConsoleController.cpp **** void ConsoleController::createTxThread()
+  47:src/ConsoleController.cpp **** {
+GAS LISTING /tmp/cca2kZUO.s 			page 2
+
+
+  48:src/ConsoleController.cpp ****     uint64* stack = new uint64[DEFAULT_STACK_SIZE];
+  49:src/ConsoleController.cpp ****     TCB::createThread(txThreadBody, nullptr, stack);
+  50:src/ConsoleController.cpp **** }
+  51:src/ConsoleController.cpp **** void ConsoleController::txThreadBody(void* arg)
+  52:src/ConsoleController.cpp **** {
+  12              		.loc 1 52 1
+  13              		.cfi_startproc
+  14              	.LVL0:
+  15 0000 130101FF 		addi	sp,sp,-16
+  16              		.cfi_def_cfa_offset 16
+  17 0004 23341100 		sd	ra,8(sp)
+  18 0008 23308100 		sd	s0,0(sp)
+  19              		.cfi_offset 1, -8
+  20              		.cfi_offset 8, -16
+  21 000c 13040101 		addi	s0,sp,16
+  22              		.cfi_def_cfa 8, 0
+  23 0010 6F004001 		j	.L3
+  24              	.LVL1:
+  25              	.L5:
+  26              	.LBB25:
+  53:src/ConsoleController.cpp ****     while (true) {
+  54:src/ConsoleController.cpp ****         char c = txBuffer->take(); // blokira dok ima znakova
+  55:src/ConsoleController.cpp ****         while (!(*((char*)CONSOLE_STATUS) & (1 << 5))); // čekaj TXRDY
+  56:src/ConsoleController.cpp ****         *((char*)CONSOLE_TX_DATA) = c;
+  27              		.loc 1 56 9
+  28 0014 97070000 		la	a5,CONSOLE_TX_DATA
+  28      83B70700 
+  29 001c 83B70700 		ld	a5,0(a5)
+  30              		.loc 1 56 35 is_stmt 0
+  31 0020 2380A700 		sb	a0,0(a5)
+  32              	.LBE25:
+  53:src/ConsoleController.cpp ****     while (true) {
+  33              		.loc 1 53 5 is_stmt 1
+  34              	.LVL2:
+  35              	.L3:
+  53:src/ConsoleController.cpp ****     while (true) {
+  36              		.loc 1 53 5
+  37              	.LBB26:
+  54:src/ConsoleController.cpp ****         while (!(*((char*)CONSOLE_STATUS) & (1 << 5))); // čekaj TXRDY
+  38              		.loc 1 54 9
+  54:src/ConsoleController.cpp ****         while (!(*((char*)CONSOLE_STATUS) & (1 << 5))); // čekaj TXRDY
+  39              		.loc 1 54 32 is_stmt 0
+  40 0024 17050000 		ld	a0,.LANCHOR0
+  40      03350500 
+  41 002c 97000000 		call	_ZN13BoundedBuffer4takeEv@plt
+  41      E7800000 
+  42              	.LVL3:
+  43              	.L2:
+  55:src/ConsoleController.cpp ****         *((char*)CONSOLE_TX_DATA) = c;
+  44              		.loc 1 55 9 is_stmt 1
+  55:src/ConsoleController.cpp ****         *((char*)CONSOLE_TX_DATA) = c;
+  45              		.loc 1 55 16
+  55:src/ConsoleController.cpp ****         *((char*)CONSOLE_TX_DATA) = c;
+  46              		.loc 1 55 18 is_stmt 0
+  47 0034 97070000 		la	a5,CONSOLE_STATUS
+  47      83B70700 
+  48 003c 83B70700 		ld	a5,0(a5)
+GAS LISTING /tmp/cca2kZUO.s 			page 3
+
+
+  49 0040 83C70700 		lbu	a5,0(a5)
+  55:src/ConsoleController.cpp ****         *((char*)CONSOLE_TX_DATA) = c;
+  50              		.loc 1 55 16
+  51 0044 93F70702 		andi	a5,a5,32
+  52 0048 E38607FE 		beqz	a5,.L2
+  53 004c 6FF09FFC 		j	.L5
+  54              	.LBE26:
+  55              		.cfi_endproc
+  56              	.LFE35:
+  58              		.align	2
+  59              		.globl	_ZN17ConsoleController6deinitEv
+  61              	_ZN17ConsoleController6deinitEv:
+  62              	.LFB30:
+  15:src/ConsoleController.cpp ****     delete txBuffer;
+  63              		.loc 1 15 1 is_stmt 1
+  64              		.cfi_startproc
+  65 0050 130101FE 		addi	sp,sp,-32
+  66              		.cfi_def_cfa_offset 32
+  67 0054 233C1100 		sd	ra,24(sp)
+  68 0058 23388100 		sd	s0,16(sp)
+  69 005c 23349100 		sd	s1,8(sp)
+  70              		.cfi_offset 1, -8
+  71              		.cfi_offset 8, -16
+  72              		.cfi_offset 9, -24
+  73 0060 13040102 		addi	s0,sp,32
+  74              		.cfi_def_cfa 8, 0
+  16:src/ConsoleController.cpp ****     delete rxBuffer;
+  75              		.loc 1 16 5
+  16:src/ConsoleController.cpp ****     delete rxBuffer;
+  76              		.loc 1 16 12 is_stmt 0
+  77 0064 97040000 		ld	s1,.LANCHOR0
+  77      83B40400 
+  16:src/ConsoleController.cpp ****     delete rxBuffer;
+  78              		.loc 1 16 20
+  79 006c 638E0400 		beqz	s1,.L7
+  16:src/ConsoleController.cpp ****     delete rxBuffer;
+  80              		.loc 1 16 12 discriminator 1
+  81 0070 13850400 		mv	a0,s1
+  82 0074 97000000 		call	_ZN13BoundedBufferD1Ev@plt
+  82      E7800000 
+  83              	.LVL4:
+  84              	.LBB27:
+  85              	.LBB28:
+  86              		.file 2 "src/../h/BoundedBuffer.hpp"
+   1:src/../h/BoundedBuffer.hpp **** #ifndef PROJECT_BASE_BUFFER_HPP
+   2:src/../h/BoundedBuffer.hpp **** #define PROJECT_BASE_BUFFER_HPP
+   3:src/../h/BoundedBuffer.hpp **** 
+   4:src/../h/BoundedBuffer.hpp **** #include "_semaphore.hpp"
+   5:src/../h/BoundedBuffer.hpp **** 
+   6:src/../h/BoundedBuffer.hpp **** class BoundedBuffer
+   7:src/../h/BoundedBuffer.hpp **** {
+   8:src/../h/BoundedBuffer.hpp **** public:
+   9:src/../h/BoundedBuffer.hpp ****     friend class ConsoleController;
+  10:src/../h/BoundedBuffer.hpp **** 
+  11:src/../h/BoundedBuffer.hpp ****     BoundedBuffer();
+  12:src/../h/BoundedBuffer.hpp ****     ~BoundedBuffer();
+  13:src/../h/BoundedBuffer.hpp **** 
+GAS LISTING /tmp/cca2kZUO.s 			page 4
+
+
+  14:src/../h/BoundedBuffer.hpp ****     void append(char c);
+  15:src/../h/BoundedBuffer.hpp ****     char take();
+  16:src/../h/BoundedBuffer.hpp **** 
+  17:src/../h/BoundedBuffer.hpp ****     bool isFull() const{ return (sz == BUFFER_SIZE); }
+  18:src/../h/BoundedBuffer.hpp **** 
+  19:src/../h/BoundedBuffer.hpp ****     void* operator new(size_t size) {
+  20:src/../h/BoundedBuffer.hpp ****         return MemoryAllocator::mem_alloc(MemoryAllocator::bytesToBlocks(size));
+  21:src/../h/BoundedBuffer.hpp ****     }
+  22:src/../h/BoundedBuffer.hpp ****     void operator delete(void* p) {
+  23:src/../h/BoundedBuffer.hpp ****         MemoryAllocator::mem_free(p);
+  87              		.loc 2 23 9 is_stmt 1 discriminator 1
+  88              		.loc 2 23 34 is_stmt 0 discriminator 1
+  89 007c 13850400 		mv	a0,s1
+  90 0080 97000000 		call	_ZN15MemoryAllocator8mem_freeEPv@plt
+  90      E7800000 
+  91              	.LVL5:
+  92              	.L7:
+  93              	.LBE28:
+  94              	.LBE27:
+  17:src/ConsoleController.cpp **** }
+  95              		.loc 1 17 5 is_stmt 1
+  17:src/ConsoleController.cpp **** }
+  96              		.loc 1 17 12 is_stmt 0
+  97 0088 97040000 		ld	s1,.LANCHOR0+8
+  97      83B40400 
+  17:src/ConsoleController.cpp **** }
+  98              		.loc 1 17 20
+  99 0090 638E0400 		beqz	s1,.L6
+  17:src/ConsoleController.cpp **** }
+ 100              		.loc 1 17 12 discriminator 1
+ 101 0094 13850400 		mv	a0,s1
+ 102 0098 97000000 		call	_ZN13BoundedBufferD1Ev@plt
+ 102      E7800000 
+ 103              	.LVL6:
+ 104              	.LBB29:
+ 105              	.LBB30:
+ 106              		.loc 2 23 9 is_stmt 1 discriminator 1
+ 107              		.loc 2 23 34 is_stmt 0 discriminator 1
+ 108 00a0 13850400 		mv	a0,s1
+ 109 00a4 97000000 		call	_ZN15MemoryAllocator8mem_freeEPv@plt
+ 109      E7800000 
+ 110              	.LVL7:
+ 111              	.L6:
+ 112              	.LBE30:
+ 113              	.LBE29:
+  18:src/ConsoleController.cpp **** 
+ 114              		.loc 1 18 1
+ 115 00ac 83308101 		ld	ra,24(sp)
+ 116              		.cfi_restore 1
+ 117 00b0 03340101 		ld	s0,16(sp)
+ 118              		.cfi_restore 8
+ 119              		.cfi_def_cfa 2, 32
+ 120 00b4 83348100 		ld	s1,8(sp)
+ 121              		.cfi_restore 9
+ 122 00b8 13010102 		addi	sp,sp,32
+ 123              		.cfi_def_cfa_offset 0
+ 124 00bc 67800000 		jr	ra
+GAS LISTING /tmp/cca2kZUO.s 			page 5
+
+
+ 125              		.cfi_endproc
+ 126              	.LFE30:
+ 128              		.align	2
+ 129              		.globl	_ZN17ConsoleController4putcEc
+ 131              	_ZN17ConsoleController4putcEc:
+ 132              	.LFB31:
+  21:src/ConsoleController.cpp ****     txBuffer->append(c);
+ 133              		.loc 1 21 1 is_stmt 1
+ 134              		.cfi_startproc
+ 135              	.LVL8:
+ 136 00c0 130101FF 		addi	sp,sp,-16
+ 137              		.cfi_def_cfa_offset 16
+ 138 00c4 23341100 		sd	ra,8(sp)
+ 139 00c8 23308100 		sd	s0,0(sp)
+ 140              		.cfi_offset 1, -8
+ 141              		.cfi_offset 8, -16
+ 142 00cc 13040101 		addi	s0,sp,16
+ 143              		.cfi_def_cfa 8, 0
+ 144 00d0 93050500 		mv	a1,a0
+  22:src/ConsoleController.cpp **** }
+ 145              		.loc 1 22 5
+  22:src/ConsoleController.cpp **** }
+ 146              		.loc 1 22 21 is_stmt 0
+ 147 00d4 17050000 		ld	a0,.LANCHOR0
+ 147      03350500 
+ 148              	.LVL9:
+ 149 00dc 97000000 		call	_ZN13BoundedBuffer6appendEc@plt
+ 149      E7800000 
+ 150              	.LVL10:
+  23:src/ConsoleController.cpp **** 
+ 151              		.loc 1 23 1
+ 152 00e4 83308100 		ld	ra,8(sp)
+ 153              		.cfi_restore 1
+ 154 00e8 03340100 		ld	s0,0(sp)
+ 155              		.cfi_restore 8
+ 156              		.cfi_def_cfa 2, 16
+ 157 00ec 13010101 		addi	sp,sp,16
+ 158              		.cfi_def_cfa_offset 0
+ 159 00f0 67800000 		jr	ra
+ 160              		.cfi_endproc
+ 161              	.LFE31:
+ 163              		.align	2
+ 164              		.globl	_ZN17ConsoleController4getcEv
+ 166              	_ZN17ConsoleController4getcEv:
+ 167              	.LFB32:
+  26:src/ConsoleController.cpp ****     return rxBuffer->take();
+ 168              		.loc 1 26 1 is_stmt 1
+ 169              		.cfi_startproc
+ 170 00f4 130101FF 		addi	sp,sp,-16
+ 171              		.cfi_def_cfa_offset 16
+ 172 00f8 23341100 		sd	ra,8(sp)
+ 173 00fc 23308100 		sd	s0,0(sp)
+ 174              		.cfi_offset 1, -8
+ 175              		.cfi_offset 8, -16
+ 176 0100 13040101 		addi	s0,sp,16
+ 177              		.cfi_def_cfa 8, 0
+  27:src/ConsoleController.cpp **** }
+GAS LISTING /tmp/cca2kZUO.s 			page 6
+
+
+ 178              		.loc 1 27 5
+  27:src/ConsoleController.cpp **** }
+ 179              		.loc 1 27 26 is_stmt 0
+ 180 0104 17050000 		ld	a0,.LANCHOR0+8
+ 180      03350500 
+ 181 010c 97000000 		call	_ZN13BoundedBuffer4takeEv@plt
+ 181      E7800000 
+ 182              	.LVL11:
+  28:src/ConsoleController.cpp **** 
+ 183              		.loc 1 28 1
+ 184 0114 83308100 		ld	ra,8(sp)
+ 185              		.cfi_restore 1
+ 186 0118 03340100 		ld	s0,0(sp)
+ 187              		.cfi_restore 8
+ 188              		.cfi_def_cfa 2, 16
+ 189 011c 13010101 		addi	sp,sp,16
+ 190              		.cfi_def_cfa_offset 0
+ 191 0120 67800000 		jr	ra
+ 192              		.cfi_endproc
+ 193              	.LFE32:
+ 195              		.align	2
+ 196              		.globl	_ZN17ConsoleController14consoleHandlerEv
+ 198              	_ZN17ConsoleController14consoleHandlerEv:
+ 199              	.LFB33:
+  31:src/ConsoleController.cpp ****     int irq = plic_claim();
+ 200              		.loc 1 31 1 is_stmt 1
+ 201              		.cfi_startproc
+ 202 0124 130101FD 		addi	sp,sp,-48
+ 203              		.cfi_def_cfa_offset 48
+ 204 0128 23341102 		sd	ra,40(sp)
+ 205 012c 23308102 		sd	s0,32(sp)
+ 206 0130 233C9100 		sd	s1,24(sp)
+ 207 0134 23382101 		sd	s2,16(sp)
+ 208              		.cfi_offset 1, -8
+ 209              		.cfi_offset 8, -16
+ 210              		.cfi_offset 9, -24
+ 211              		.cfi_offset 18, -32
+ 212 0138 13040103 		addi	s0,sp,48
+ 213              		.cfi_def_cfa 8, 0
+  32:src/ConsoleController.cpp ****     if (irq == 0x0a) //keyboard interrupt
+ 214              		.loc 1 32 5
+  32:src/ConsoleController.cpp ****     if (irq == 0x0a) //keyboard interrupt
+ 215              		.loc 1 32 25 is_stmt 0
+ 216 013c 97000000 		call	plic_claim@plt
+ 216      E7800000 
+ 217              	.LVL12:
+ 218 0144 93040500 		mv	s1,a0
+ 219              	.LVL13:
+  33:src/ConsoleController.cpp ****     {
+ 220              		.loc 1 33 5 is_stmt 1
+ 221              	.LBB31:
+ 222 0148 9307A000 		li	a5,10
+ 223 014c 6304F502 		beq	a0,a5,.L19
+ 224              	.LVL14:
+ 225              	.L15:
+ 226              	.LBE31:
+  43:src/ConsoleController.cpp **** 
+GAS LISTING /tmp/cca2kZUO.s 			page 7
+
+
+ 227              		.loc 1 43 5
+  43:src/ConsoleController.cpp **** 
+ 228              		.loc 1 43 18 is_stmt 0
+ 229 0150 13850400 		mv	a0,s1
+ 230 0154 97000000 		call	plic_complete@plt
+ 230      E7800000 
+ 231              	.LVL15:
+  45:src/ConsoleController.cpp **** void ConsoleController::createTxThread()
+ 232              		.loc 1 45 1
+ 233 015c 83308102 		ld	ra,40(sp)
+ 234              		.cfi_remember_state
+ 235              		.cfi_restore 1
+ 236 0160 03340102 		ld	s0,32(sp)
+ 237              		.cfi_restore 8
+ 238              		.cfi_def_cfa 2, 48
+ 239 0164 83348101 		ld	s1,24(sp)
+ 240              		.cfi_restore 9
+ 241 0168 03390101 		ld	s2,16(sp)
+ 242              		.cfi_restore 18
+ 243 016c 13010103 		addi	sp,sp,48
+ 244              		.cfi_def_cfa_offset 0
+ 245 0170 67800000 		jr	ra
+ 246              	.LVL16:
+ 247              	.L19:
+ 248              		.cfi_restore_state
+ 249              	.LBB37:
+ 250              	.LBB32:
+  35:src/ConsoleController.cpp ****         while (status & 1)
+ 251              		.loc 1 35 9 is_stmt 1
+  35:src/ConsoleController.cpp ****         while (status & 1)
+ 252              		.loc 1 35 32 is_stmt 0
+ 253 0174 97070000 		la	a5,CONSOLE_STATUS
+ 253      83B70700 
+ 254 017c 03B90700 		ld	s2,0(a5)
+ 255 0180 83470900 		lbu	a5,0(s2)
+  35:src/ConsoleController.cpp ****         while (status & 1)
+ 256              		.loc 1 35 23
+ 257 0184 A30FF4FC 		sb	a5,-33(s0)
+ 258 0188 6F004001 		j	.L17
+ 259              	.LVL17:
+ 260              	.L20:
+ 261              	.LBB33:
+  39:src/ConsoleController.cpp ****             status = *((char*) CONSOLE_STATUS);
+ 262              		.loc 1 39 38 is_stmt 1 discriminator 1
+  39:src/ConsoleController.cpp ****             status = *((char*) CONSOLE_STATUS);
+ 263              		.loc 1 39 54 is_stmt 0 discriminator 1
+ 264 018c 97000000 		call	_ZN13BoundedBuffer6appendEc@plt
+ 264      E7800000 
+ 265              	.LVL18:
+ 266              	.L16:
+  40:src/ConsoleController.cpp ****         }
+ 267              		.loc 1 40 13 is_stmt 1
+  40:src/ConsoleController.cpp ****         }
+ 268              		.loc 1 40 22 is_stmt 0
+ 269 0194 83470900 		lbu	a5,0(s2)
+  40:src/ConsoleController.cpp ****         }
+ 270              		.loc 1 40 20
+GAS LISTING /tmp/cca2kZUO.s 			page 8
+
+
+ 271 0198 A30FF4FC 		sb	a5,-33(s0)
+ 272              	.L17:
+ 273              	.LBE33:
+  36:src/ConsoleController.cpp ****         {
+ 274              		.loc 1 36 9 is_stmt 1
+  36:src/ConsoleController.cpp ****         {
+ 275              		.loc 1 36 25
+  36:src/ConsoleController.cpp ****         {
+ 276              		.loc 1 36 23 is_stmt 0
+ 277 019c 8347F4FD 		lbu	a5,-33(s0)
+  36:src/ConsoleController.cpp ****         {
+ 278              		.loc 1 36 25
+ 279 01a0 93F71700 		andi	a5,a5,1
+ 280 01a4 E38607FA 		beqz	a5,.L15
+ 281              	.LBB36:
+  38:src/ConsoleController.cpp ****             if (!rxBuffer->isFull()) rxBuffer->append(c);
+ 282              		.loc 1 38 13 is_stmt 1
+  38:src/ConsoleController.cpp ****             if (!rxBuffer->isFull()) rxBuffer->append(c);
+ 283              		.loc 1 38 22 is_stmt 0
+ 284 01a8 97070000 		la	a5,CONSOLE_RX_DATA
+ 284      83B70700 
+ 285 01b0 83B70700 		ld	a5,0(a5)
+  38:src/ConsoleController.cpp ****             if (!rxBuffer->isFull()) rxBuffer->append(c);
+ 286              		.loc 1 38 18
+ 287 01b4 83C50700 		lbu	a1,0(a5)
+ 288              	.LVL19:
+  39:src/ConsoleController.cpp ****             status = *((char*) CONSOLE_STATUS);
+ 289              		.loc 1 39 13 is_stmt 1
+  39:src/ConsoleController.cpp ****             status = *((char*) CONSOLE_STATUS);
+ 290              		.loc 1 39 34 is_stmt 0
+ 291 01b8 17050000 		ld	a0,.LANCHOR0+8
+ 291      03350500 
+ 292              	.LVL20:
+ 293              	.LBB34:
+ 294              	.LBB35:
+  17:src/../h/BoundedBuffer.hpp **** 
+ 295              		.loc 2 17 26 is_stmt 1
+  17:src/../h/BoundedBuffer.hpp **** 
+ 296              		.loc 2 17 34 is_stmt 0
+ 297 01c0 03278511 		lw	a4,280(a0)
+ 298              	.LVL21:
+ 299              	.LBE35:
+ 300              	.LBE34:
+  39:src/ConsoleController.cpp ****             status = *((char*) CONSOLE_STATUS);
+ 301              		.loc 1 39 13
+ 302 01c4 93070010 		li	a5,256
+ 303 01c8 E306F7FC 		beq	a4,a5,.L16
+ 304 01cc 6FF01FFC 		j	.L20
+ 305              	.LBE36:
+ 306              	.LBE32:
+ 307              	.LBE37:
+ 308              		.cfi_endproc
+ 309              	.LFE33:
+ 311              		.align	2
+ 312              		.globl	_ZN17ConsoleController14createTxThreadEv
+ 314              	_ZN17ConsoleController14createTxThreadEv:
+ 315              	.LFB34:
+GAS LISTING /tmp/cca2kZUO.s 			page 9
+
+
+  47:src/ConsoleController.cpp ****     uint64* stack = new uint64[DEFAULT_STACK_SIZE];
+ 316              		.loc 1 47 1 is_stmt 1
+ 317              		.cfi_startproc
+ 318 01d0 130101FF 		addi	sp,sp,-16
+ 319              		.cfi_def_cfa_offset 16
+ 320 01d4 23341100 		sd	ra,8(sp)
+ 321 01d8 23308100 		sd	s0,0(sp)
+ 322              		.cfi_offset 1, -8
+ 323              		.cfi_offset 8, -16
+ 324 01dc 13040101 		addi	s0,sp,16
+ 325              		.cfi_def_cfa 8, 0
+  48:src/ConsoleController.cpp ****     TCB::createThread(txThreadBody, nullptr, stack);
+ 326              		.loc 1 48 5
+  48:src/ConsoleController.cpp ****     TCB::createThread(txThreadBody, nullptr, stack);
+ 327              		.loc 1 48 50 is_stmt 0
+ 328 01e0 37850000 		li	a0,32768
+ 329 01e4 97000000 		call	_Znam@plt
+ 329      E7800000 
+ 330              	.LVL22:
+ 331 01ec 13060500 		mv	a2,a0
+ 332              	.LVL23:
+  49:src/ConsoleController.cpp **** }
+ 333              		.loc 1 49 5 is_stmt 1
+  49:src/ConsoleController.cpp **** }
+ 334              		.loc 1 49 22 is_stmt 0
+ 335 01f0 93050000 		li	a1,0
+ 336 01f4 17050000 		lla	a0,_ZN17ConsoleController12txThreadBodyEPv
+ 336      13050500 
+ 337              	.LVL24:
+ 338 01fc 97000000 		call	_ZN3TCB12createThreadEPFvPvES0_Pm@plt
+ 338      E7800000 
+ 339              	.LVL25:
+  50:src/ConsoleController.cpp **** void ConsoleController::txThreadBody(void* arg)
+ 340              		.loc 1 50 1
+ 341 0204 83308100 		ld	ra,8(sp)
+ 342              		.cfi_restore 1
+ 343 0208 03340100 		ld	s0,0(sp)
+ 344              		.cfi_restore 8
+ 345              		.cfi_def_cfa 2, 16
+ 346 020c 13010101 		addi	sp,sp,16
+ 347              		.cfi_def_cfa_offset 0
+ 348 0210 67800000 		jr	ra
+ 349              		.cfi_endproc
+ 350              	.LFE34:
+ 352              		.align	2
+ 353              		.globl	_ZN17ConsoleController4initEv
+ 355              	_ZN17ConsoleController4initEv:
+ 356              	.LFB29:
+   8:src/ConsoleController.cpp ****     txBuffer = new BoundedBuffer();
+ 357              		.loc 1 8 1 is_stmt 1
+ 358              		.cfi_startproc
+ 359              		.cfi_personality 0x9b,DW.ref.__gxx_personality_v0
+ 360              		.cfi_lsda 0x1b,.LLSDA29
+ 361 0214 130101FE 		addi	sp,sp,-32
+ 362              		.cfi_def_cfa_offset 32
+ 363 0218 233C1100 		sd	ra,24(sp)
+ 364 021c 23388100 		sd	s0,16(sp)
+GAS LISTING /tmp/cca2kZUO.s 			page 10
+
+
+ 365 0220 23349100 		sd	s1,8(sp)
+ 366 0224 23302101 		sd	s2,0(sp)
+ 367              		.cfi_offset 1, -8
+ 368              		.cfi_offset 8, -16
+ 369              		.cfi_offset 9, -24
+ 370              		.cfi_offset 18, -32
+ 371 0228 13040102 		addi	s0,sp,32
+ 372              		.cfi_def_cfa 8, 0
+   9:src/ConsoleController.cpp ****     rxBuffer = new BoundedBuffer();
+ 373              		.loc 1 9 5
+ 374              	.LVL26:
+ 375              	.LBB38:
+ 376              	.LBB39:
+  20:src/../h/BoundedBuffer.hpp ****     }
+ 377              		.loc 2 20 9
+ 378              	.LBE39:
+ 379              	.LBE38:
+ 380              		.file 3 "src/../h/MemoryAllocator.hpp"
+   1:src/../h/MemoryAllocator.hpp **** #ifndef PROJECT_BASE_MEMORYALLOCATOR_HPP
+   2:src/../h/MemoryAllocator.hpp **** #define PROJECT_BASE_MEMORYALLOCATOR_HPP
+   3:src/../h/MemoryAllocator.hpp **** #include "../lib/hw.h"
+   4:src/../h/MemoryAllocator.hpp **** 
+   5:src/../h/MemoryAllocator.hpp **** 
+   6:src/../h/MemoryAllocator.hpp **** 
+   7:src/../h/MemoryAllocator.hpp **** struct FreeMem{
+   8:src/../h/MemoryAllocator.hpp ****     FreeMem* next;
+   9:src/../h/MemoryAllocator.hpp ****     FreeMem* prev;
+  10:src/../h/MemoryAllocator.hpp ****     size_t size;   /*specified in MEM_BLOCK_SIZE*/
+  11:src/../h/MemoryAllocator.hpp **** };
+  12:src/../h/MemoryAllocator.hpp **** 
+  13:src/../h/MemoryAllocator.hpp **** 
+  14:src/../h/MemoryAllocator.hpp **** class MemoryAllocator{
+  15:src/../h/MemoryAllocator.hpp **** public:
+  16:src/../h/MemoryAllocator.hpp ****     static FreeMem* fmem_head;
+  17:src/../h/MemoryAllocator.hpp **** 
+  18:src/../h/MemoryAllocator.hpp ****     static void memInit();
+  19:src/../h/MemoryAllocator.hpp ****     static void* mem_alloc(size_t size);
+  20:src/../h/MemoryAllocator.hpp ****     static int mem_free(void* ptr);
+  21:src/../h/MemoryAllocator.hpp **** 
+  22:src/../h/MemoryAllocator.hpp ****     static size_t bytesToBlocks(size_t bytes);
+  23:src/../h/MemoryAllocator.hpp **** };
+  24:src/../h/MemoryAllocator.hpp **** 
+  25:src/../h/MemoryAllocator.hpp **** inline size_t MemoryAllocator::bytesToBlocks(size_t bytes) //to given requested size it adds sizeof
+  26:src/../h/MemoryAllocator.hpp **** {
+  27:src/../h/MemoryAllocator.hpp ****     bytes += sizeof(FreeMem);
+ 381              		.loc 3 27 5
+  28:src/../h/MemoryAllocator.hpp ****     return (bytes % MEM_BLOCK_SIZE != 0) ? bytes / MEM_BLOCK_SIZE + 1: bytes / MEM_BLOCK_SIZE;
+ 382              		.loc 3 28 5
+ 383              	.LBB41:
+ 384              	.LBB40:
+  20:src/../h/BoundedBuffer.hpp ****     }
+ 385              		.loc 2 20 42 is_stmt 0
+ 386 022c 13055000 		li	a0,5
+ 387              	.LEHB0:
+ 388 0230 97000000 		call	_ZN15MemoryAllocator9mem_allocEm@plt
+ 388      E7800000 
+ 389              	.LVL27:
+GAS LISTING /tmp/cca2kZUO.s 			page 11
+
+
+ 390              	.LEHE0:
+ 391 0238 93040500 		mv	s1,a0
+ 392              	.LVL28:
+ 393              	.LEHB1:
+ 394              	.LBE40:
+ 395              	.LBE41:
+ 396 023c 97000000 		call	_ZN13BoundedBufferC1Ev@plt
+ 396      E7800000 
+ 397              	.LVL29:
+ 398              	.LEHE1:
+   9:src/ConsoleController.cpp ****     rxBuffer = new BoundedBuffer();
+ 399              		.loc 1 9 14 discriminator 2
+ 400 0244 97070000 		sd	s1,.LANCHOR0,a5
+ 400      23B09700 
+  10:src/ConsoleController.cpp ****     createTxThread();
+ 401              		.loc 1 10 5 is_stmt 1 discriminator 2
+ 402              	.LVL30:
+ 403              	.LBB42:
+ 404              	.LBB43:
+  20:src/../h/BoundedBuffer.hpp ****     }
+ 405              		.loc 2 20 9 discriminator 2
+ 406              	.LBE43:
+ 407              	.LBE42:
+  27:src/../h/MemoryAllocator.hpp ****     return (bytes % MEM_BLOCK_SIZE != 0) ? bytes / MEM_BLOCK_SIZE + 1: bytes / MEM_BLOCK_SIZE;
+ 408              		.loc 3 27 5 discriminator 2
+ 409              		.loc 3 28 5 discriminator 2
+ 410              	.LBB45:
+ 411              	.LBB44:
+  20:src/../h/BoundedBuffer.hpp ****     }
+ 412              		.loc 2 20 42 is_stmt 0 discriminator 2
+ 413 024c 13055000 		li	a0,5
+ 414              	.LEHB2:
+ 415 0250 97000000 		call	_ZN15MemoryAllocator9mem_allocEm@plt
+ 415      E7800000 
+ 416              	.LVL31:
+ 417              	.LEHE2:
+ 418 0258 93040500 		mv	s1,a0
+ 419              	.LVL32:
+ 420              	.LEHB3:
+ 421              	.LBE44:
+ 422              	.LBE45:
+ 423 025c 97000000 		call	_ZN13BoundedBufferC1Ev@plt
+ 423      E7800000 
+ 424              	.LVL33:
+ 425              	.LEHE3:
+  10:src/ConsoleController.cpp ****     createTxThread();
+ 426              		.loc 1 10 14
+ 427 0264 97070000 		sd	s1,.LANCHOR0+8,a5
+ 427      23B09700 
+  11:src/ConsoleController.cpp **** }
+ 428              		.loc 1 11 5 is_stmt 1
+ 429              	.LEHB4:
+  11:src/ConsoleController.cpp **** }
+ 430              		.loc 1 11 19 is_stmt 0
+ 431 026c 97000000 		call	_ZN17ConsoleController14createTxThreadEv
+ 431      E7800000 
+ 432              	.LVL34:
+GAS LISTING /tmp/cca2kZUO.s 			page 12
+
+
+ 433              	.LEHE4:
+  12:src/ConsoleController.cpp **** 
+ 434              		.loc 1 12 1
+ 435 0274 83308101 		ld	ra,24(sp)
+ 436              		.cfi_remember_state
+ 437              		.cfi_restore 1
+ 438 0278 03340101 		ld	s0,16(sp)
+ 439              		.cfi_restore 8
+ 440              		.cfi_def_cfa 2, 32
+ 441 027c 83348100 		ld	s1,8(sp)
+ 442              		.cfi_restore 9
+ 443 0280 03390100 		ld	s2,0(sp)
+ 444              		.cfi_restore 18
+ 445 0284 13010102 		addi	sp,sp,32
+ 446              		.cfi_def_cfa_offset 0
+ 447 0288 67800000 		jr	ra
+ 448              	.L26:
+ 449              		.cfi_restore_state
+ 450 028c 13090500 		mv	s2,a0
+ 451              	.LVL35:
+ 452              	.LBB46:
+ 453              	.LBB47:
+ 454              		.loc 2 23 9 is_stmt 1
+ 455              		.loc 2 23 34 is_stmt 0
+ 456 0290 13850400 		mv	a0,s1
+ 457 0294 97000000 		call	_ZN15MemoryAllocator8mem_freeEPv@plt
+ 457      E7800000 
+ 458              	.LVL36:
+ 459 029c 13050900 		mv	a0,s2
+ 460              	.LEHB5:
+ 461 02a0 97000000 		call	_Unwind_Resume@plt
+ 461      E7800000 
+ 462              	.LVL37:
+ 463              	.LEHE5:
+ 464              	.L27:
+ 465 02a8 13090500 		mv	s2,a0
+ 466              	.LVL38:
+ 467              	.LBE47:
+ 468              	.LBE46:
+ 469              	.LBB48:
+ 470              	.LBB49:
+ 471              		.loc 2 23 9 is_stmt 1
+ 472              		.loc 2 23 34 is_stmt 0
+ 473 02ac 13850400 		mv	a0,s1
+ 474 02b0 97000000 		call	_ZN15MemoryAllocator8mem_freeEPv@plt
+ 474      E7800000 
+ 475              	.LVL39:
+ 476 02b8 13050900 		mv	a0,s2
+ 477              	.LEHB6:
+ 478 02bc 97000000 		call	_Unwind_Resume@plt
+ 478      E7800000 
+ 479              	.LVL40:
+ 480              	.LEHE6:
+ 481              	.LBE49:
+ 482              	.LBE48:
+ 483              		.cfi_endproc
+ 484              	.LFE29:
+GAS LISTING /tmp/cca2kZUO.s 			page 13
+
+
+ 485              		.globl	__gxx_personality_v0
+ 486              		.section	.gcc_except_table,"a",@progbits
+ 487              	.LLSDA29:
+ 488 0000 FF       		.byte	0xff
+ 489 0001 FF       		.byte	0xff
+ 490 0002 03       		.byte	0x3
+ 491 0003 5B       		.byte	0x5b
+ 492 0004 00000000 		.4byte	.LEHB0-.LFB29
+ 493 0008 00000000 		.4byte	.LEHE0-.LEHB0
+ 494 000c 00000000 		.4byte	0
+ 495 0010 00       		.byte	0
+ 496 0011 00000000 		.4byte	.LEHB1-.LFB29
+ 497 0015 00000000 		.4byte	.LEHE1-.LEHB1
+ 498 0019 00000000 		.4byte	.L26-.LFB29
+ 499 001d 00       		.byte	0
+ 500 001e 00000000 		.4byte	.LEHB2-.LFB29
+ 501 0022 00000000 		.4byte	.LEHE2-.LEHB2
+ 502 0026 00000000 		.4byte	0
+ 503 002a 00       		.byte	0
+ 504 002b 00000000 		.4byte	.LEHB3-.LFB29
+ 505 002f 00000000 		.4byte	.LEHE3-.LEHB3
+ 506 0033 00000000 		.4byte	.L27-.LFB29
+ 507 0037 00       		.byte	0
+ 508 0038 00000000 		.4byte	.LEHB4-.LFB29
+ 509 003c 00000000 		.4byte	.LEHE4-.LEHB4
+ 510 0040 00000000 		.4byte	0
+ 511 0044 00       		.byte	0
+ 512 0045 00000000 		.4byte	.LEHB5-.LFB29
+ 513 0049 00000000 		.4byte	.LEHE5-.LEHB5
+ 514 004d 00000000 		.4byte	0
+ 515 0051 00       		.byte	0
+ 516 0052 00000000 		.4byte	.LEHB6-.LFB29
+ 517 0056 00000000 		.4byte	.LEHE6-.LEHB6
+ 518 005a 00000000 		.4byte	0
+ 519 005e 00       		.byte	0
+ 520              		.text
+ 522              		.globl	_ZN17ConsoleController8rxBufferE
+ 523              		.globl	_ZN17ConsoleController8txBufferE
+ 524              		.bss
+ 525              		.align	3
+ 526              		.set	.LANCHOR0,. + 0
+ 529              	_ZN17ConsoleController8txBufferE:
+ 530 0000 00000000 		.zero	8
+ 530      00000000 
+ 533              	_ZN17ConsoleController8rxBufferE:
+ 534 0008 00000000 		.zero	8
+ 534      00000000 
+ 535              		.text
+ 536              	.Letext0:
+ 537              		.file 4 "src/../h/../lib/hw.h"
+ 538              		.file 5 "src/../h/TCB.hpp"
+ 539              		.file 6 "src/../h/_semaphore.hpp"
+ 540              		.file 7 "src/../h/ConsoleController.hpp"
+ 3754              		.align	3
+ 3757              	DW.ref.__gxx_personality_v0:
+ 3758 0000 00000000 		.dword	__gxx_personality_v0
+ 3758      00000000 
+GAS LISTING /tmp/cca2kZUO.s 			page 14
+
+
+ 3759              		.ident	"GCC: (Ubuntu 9.4.0-1ubuntu1~20.04) 9.4.0"
+ 3760              		.section	.note.GNU-stack,"",@progbits
+GAS LISTING /tmp/cca2kZUO.s 			page 15
+
+
+DEFINED SYMBOLS
+                            *ABS*:0000000000000000 ConsoleController.cpp
+     /tmp/cca2kZUO.s:9      .text:0000000000000000 _ZN17ConsoleController12txThreadBodyEPv
+     /tmp/cca2kZUO.s:13     .text:0000000000000000 .L0 
+     /tmp/cca2kZUO.s:15     .text:0000000000000000 .L0 
+     /tmp/cca2kZUO.s:16     .text:0000000000000004 .L0 
+     /tmp/cca2kZUO.s:19     .text:000000000000000c .L0 
+     /tmp/cca2kZUO.s:20     .text:000000000000000c .L0 
+     /tmp/cca2kZUO.s:22     .text:0000000000000010 .L0 
+     /tmp/cca2kZUO.s:28     .text:0000000000000014 .L0 
+     /tmp/cca2kZUO.s:31     .text:0000000000000020 .L0 
+     /tmp/cca2kZUO.s:36     .text:0000000000000024 .L0 
+     /tmp/cca2kZUO.s:38     .text:0000000000000024 .L0 
+     /tmp/cca2kZUO.s:39     .text:0000000000000024 .L0 
+     /tmp/cca2kZUO.s:40     .text:0000000000000024 .L0 
+     /tmp/cca2kZUO.s:45     .text:0000000000000034 .L0 
+     /tmp/cca2kZUO.s:46     .text:0000000000000034 .L0 
+     /tmp/cca2kZUO.s:47     .text:0000000000000034 .L0 
+     /tmp/cca2kZUO.s:51     .text:0000000000000044 .L0 
+     /tmp/cca2kZUO.s:55     .text:0000000000000050 .L0 
+     /tmp/cca2kZUO.s:61     .text:0000000000000050 _ZN17ConsoleController6deinitEv
+     /tmp/cca2kZUO.s:64     .text:0000000000000050 .L0 
+     /tmp/cca2kZUO.s:65     .text:0000000000000050 .L0 
+     /tmp/cca2kZUO.s:66     .text:0000000000000054 .L0 
+     /tmp/cca2kZUO.s:70     .text:0000000000000060 .L0 
+     /tmp/cca2kZUO.s:71     .text:0000000000000060 .L0 
+     /tmp/cca2kZUO.s:72     .text:0000000000000060 .L0 
+     /tmp/cca2kZUO.s:74     .text:0000000000000064 .L0 
+     /tmp/cca2kZUO.s:76     .text:0000000000000064 .L0 
+     /tmp/cca2kZUO.s:77     .text:0000000000000064 .L0 
+     /tmp/cca2kZUO.s:79     .text:000000000000006c .L0 
+     /tmp/cca2kZUO.s:81     .text:0000000000000070 .L0 
+     /tmp/cca2kZUO.s:88     .text:000000000000007c .L0 
+     /tmp/cca2kZUO.s:89     .text:000000000000007c .L0 
+     /tmp/cca2kZUO.s:96     .text:0000000000000088 .L0 
+     /tmp/cca2kZUO.s:97     .text:0000000000000088 .L0 
+     /tmp/cca2kZUO.s:99     .text:0000000000000090 .L0 
+     /tmp/cca2kZUO.s:101    .text:0000000000000094 .L0 
+     /tmp/cca2kZUO.s:107    .text:00000000000000a0 .L0 
+     /tmp/cca2kZUO.s:108    .text:00000000000000a0 .L0 
+     /tmp/cca2kZUO.s:115    .text:00000000000000ac .L0 
+     /tmp/cca2kZUO.s:116    .text:00000000000000b0 .L0 
+     /tmp/cca2kZUO.s:118    .text:00000000000000b4 .L0 
+     /tmp/cca2kZUO.s:119    .text:00000000000000b4 .L0 
+     /tmp/cca2kZUO.s:121    .text:00000000000000b8 .L0 
+     /tmp/cca2kZUO.s:123    .text:00000000000000bc .L0 
+     /tmp/cca2kZUO.s:125    .text:00000000000000c0 .L0 
+     /tmp/cca2kZUO.s:131    .text:00000000000000c0 _ZN17ConsoleController4putcEc
+     /tmp/cca2kZUO.s:134    .text:00000000000000c0 .L0 
+     /tmp/cca2kZUO.s:136    .text:00000000000000c0 .L0 
+     /tmp/cca2kZUO.s:137    .text:00000000000000c4 .L0 
+     /tmp/cca2kZUO.s:140    .text:00000000000000cc .L0 
+     /tmp/cca2kZUO.s:141    .text:00000000000000cc .L0 
+     /tmp/cca2kZUO.s:143    .text:00000000000000d0 .L0 
+     /tmp/cca2kZUO.s:146    .text:00000000000000d4 .L0 
+     /tmp/cca2kZUO.s:147    .text:00000000000000d4 .L0 
+     /tmp/cca2kZUO.s:152    .text:00000000000000e4 .L0 
+GAS LISTING /tmp/cca2kZUO.s 			page 16
+
+
+     /tmp/cca2kZUO.s:153    .text:00000000000000e8 .L0 
+     /tmp/cca2kZUO.s:155    .text:00000000000000ec .L0 
+     /tmp/cca2kZUO.s:156    .text:00000000000000ec .L0 
+     /tmp/cca2kZUO.s:158    .text:00000000000000f0 .L0 
+     /tmp/cca2kZUO.s:160    .text:00000000000000f4 .L0 
+     /tmp/cca2kZUO.s:166    .text:00000000000000f4 _ZN17ConsoleController4getcEv
+     /tmp/cca2kZUO.s:169    .text:00000000000000f4 .L0 
+     /tmp/cca2kZUO.s:170    .text:00000000000000f4 .L0 
+     /tmp/cca2kZUO.s:171    .text:00000000000000f8 .L0 
+     /tmp/cca2kZUO.s:174    .text:0000000000000100 .L0 
+     /tmp/cca2kZUO.s:175    .text:0000000000000100 .L0 
+     /tmp/cca2kZUO.s:177    .text:0000000000000104 .L0 
+     /tmp/cca2kZUO.s:179    .text:0000000000000104 .L0 
+     /tmp/cca2kZUO.s:180    .text:0000000000000104 .L0 
+     /tmp/cca2kZUO.s:184    .text:0000000000000114 .L0 
+     /tmp/cca2kZUO.s:185    .text:0000000000000118 .L0 
+     /tmp/cca2kZUO.s:187    .text:000000000000011c .L0 
+     /tmp/cca2kZUO.s:188    .text:000000000000011c .L0 
+     /tmp/cca2kZUO.s:190    .text:0000000000000120 .L0 
+     /tmp/cca2kZUO.s:192    .text:0000000000000124 .L0 
+     /tmp/cca2kZUO.s:198    .text:0000000000000124 _ZN17ConsoleController14consoleHandlerEv
+     /tmp/cca2kZUO.s:201    .text:0000000000000124 .L0 
+     /tmp/cca2kZUO.s:202    .text:0000000000000124 .L0 
+     /tmp/cca2kZUO.s:203    .text:0000000000000128 .L0 
+     /tmp/cca2kZUO.s:208    .text:0000000000000138 .L0 
+     /tmp/cca2kZUO.s:209    .text:0000000000000138 .L0 
+     /tmp/cca2kZUO.s:210    .text:0000000000000138 .L0 
+     /tmp/cca2kZUO.s:211    .text:0000000000000138 .L0 
+     /tmp/cca2kZUO.s:213    .text:000000000000013c .L0 
+     /tmp/cca2kZUO.s:215    .text:000000000000013c .L0 
+     /tmp/cca2kZUO.s:216    .text:000000000000013c .L0 
+     /tmp/cca2kZUO.s:222    .text:0000000000000148 .L0 
+     /tmp/cca2kZUO.s:228    .text:0000000000000150 .L0 
+     /tmp/cca2kZUO.s:229    .text:0000000000000150 .L0 
+     /tmp/cca2kZUO.s:233    .text:000000000000015c .L0 
+     /tmp/cca2kZUO.s:234    .text:0000000000000160 .L0 
+     /tmp/cca2kZUO.s:235    .text:0000000000000160 .L0 
+     /tmp/cca2kZUO.s:237    .text:0000000000000164 .L0 
+     /tmp/cca2kZUO.s:238    .text:0000000000000164 .L0 
+     /tmp/cca2kZUO.s:240    .text:0000000000000168 .L0 
+     /tmp/cca2kZUO.s:242    .text:000000000000016c .L0 
+     /tmp/cca2kZUO.s:244    .text:0000000000000170 .L0 
+     /tmp/cca2kZUO.s:248    .text:0000000000000174 .L0 
+     /tmp/cca2kZUO.s:252    .text:0000000000000174 .L0 
+     /tmp/cca2kZUO.s:253    .text:0000000000000174 .L0 
+     /tmp/cca2kZUO.s:257    .text:0000000000000184 .L0 
+     /tmp/cca2kZUO.s:263    .text:000000000000018c .L0 
+     /tmp/cca2kZUO.s:264    .text:000000000000018c .L0 
+     /tmp/cca2kZUO.s:268    .text:0000000000000194 .L0 
+     /tmp/cca2kZUO.s:269    .text:0000000000000194 .L0 
+     /tmp/cca2kZUO.s:271    .text:0000000000000198 .L0 
+     /tmp/cca2kZUO.s:275    .text:000000000000019c .L0 
+     /tmp/cca2kZUO.s:276    .text:000000000000019c .L0 
+     /tmp/cca2kZUO.s:277    .text:000000000000019c .L0 
+     /tmp/cca2kZUO.s:279    .text:00000000000001a0 .L0 
+     /tmp/cca2kZUO.s:283    .text:00000000000001a8 .L0 
+     /tmp/cca2kZUO.s:284    .text:00000000000001a8 .L0 
+GAS LISTING /tmp/cca2kZUO.s 			page 17
+
+
+     /tmp/cca2kZUO.s:287    .text:00000000000001b4 .L0 
+     /tmp/cca2kZUO.s:290    .text:00000000000001b8 .L0 
+     /tmp/cca2kZUO.s:291    .text:00000000000001b8 .L0 
+     /tmp/cca2kZUO.s:296    .text:00000000000001c0 .L0 
+     /tmp/cca2kZUO.s:297    .text:00000000000001c0 .L0 
+     /tmp/cca2kZUO.s:302    .text:00000000000001c4 .L0 
+     /tmp/cca2kZUO.s:308    .text:00000000000001d0 .L0 
+     /tmp/cca2kZUO.s:314    .text:00000000000001d0 _ZN17ConsoleController14createTxThreadEv
+     /tmp/cca2kZUO.s:317    .text:00000000000001d0 .L0 
+     /tmp/cca2kZUO.s:318    .text:00000000000001d0 .L0 
+     /tmp/cca2kZUO.s:319    .text:00000000000001d4 .L0 
+     /tmp/cca2kZUO.s:322    .text:00000000000001dc .L0 
+     /tmp/cca2kZUO.s:323    .text:00000000000001dc .L0 
+     /tmp/cca2kZUO.s:325    .text:00000000000001e0 .L0 
+     /tmp/cca2kZUO.s:327    .text:00000000000001e0 .L0 
+     /tmp/cca2kZUO.s:328    .text:00000000000001e0 .L0 
+     /tmp/cca2kZUO.s:334    .text:00000000000001f0 .L0 
+     /tmp/cca2kZUO.s:335    .text:00000000000001f0 .L0 
+     /tmp/cca2kZUO.s:341    .text:0000000000000204 .L0 
+     /tmp/cca2kZUO.s:342    .text:0000000000000208 .L0 
+     /tmp/cca2kZUO.s:344    .text:000000000000020c .L0 
+     /tmp/cca2kZUO.s:345    .text:000000000000020c .L0 
+     /tmp/cca2kZUO.s:347    .text:0000000000000210 .L0 
+     /tmp/cca2kZUO.s:349    .text:0000000000000214 .L0 
+     /tmp/cca2kZUO.s:355    .text:0000000000000214 _ZN17ConsoleController4initEv
+     /tmp/cca2kZUO.s:358    .text:0000000000000214 .L0 
+     /tmp/cca2kZUO.s:3757   .data.rel.local.DW.ref.__gxx_personality_v0:0000000000000000 DW.ref.__gxx_personality_v0
+     /tmp/cca2kZUO.s:361    .text:0000000000000214 .L0 
+     /tmp/cca2kZUO.s:362    .text:0000000000000218 .L0 
+     /tmp/cca2kZUO.s:367    .text:0000000000000228 .L0 
+     /tmp/cca2kZUO.s:368    .text:0000000000000228 .L0 
+     /tmp/cca2kZUO.s:369    .text:0000000000000228 .L0 
+     /tmp/cca2kZUO.s:370    .text:0000000000000228 .L0 
+     /tmp/cca2kZUO.s:372    .text:000000000000022c .L0 
+     /tmp/cca2kZUO.s:377    .text:000000000000022c .L0 
+     /tmp/cca2kZUO.s:381    .text:000000000000022c .L0 
+     /tmp/cca2kZUO.s:382    .text:000000000000022c .L0 
+     /tmp/cca2kZUO.s:385    .text:000000000000022c .L0 
+     /tmp/cca2kZUO.s:386    .text:000000000000022c .L0 
+     /tmp/cca2kZUO.s:400    .text:0000000000000244 .L0 
+     /tmp/cca2kZUO.s:405    .text:000000000000024c .L0 
+     /tmp/cca2kZUO.s:408    .text:000000000000024c .L0 
+     /tmp/cca2kZUO.s:409    .text:000000000000024c .L0 
+     /tmp/cca2kZUO.s:412    .text:000000000000024c .L0 
+     /tmp/cca2kZUO.s:413    .text:000000000000024c .L0 
+     /tmp/cca2kZUO.s:427    .text:0000000000000264 .L0 
+     /tmp/cca2kZUO.s:430    .text:000000000000026c .L0 
+     /tmp/cca2kZUO.s:431    .text:000000000000026c .L0 
+     /tmp/cca2kZUO.s:435    .text:0000000000000274 .L0 
+     /tmp/cca2kZUO.s:436    .text:0000000000000278 .L0 
+     /tmp/cca2kZUO.s:437    .text:0000000000000278 .L0 
+     /tmp/cca2kZUO.s:439    .text:000000000000027c .L0 
+     /tmp/cca2kZUO.s:440    .text:000000000000027c .L0 
+     /tmp/cca2kZUO.s:442    .text:0000000000000280 .L0 
+     /tmp/cca2kZUO.s:444    .text:0000000000000284 .L0 
+     /tmp/cca2kZUO.s:446    .text:0000000000000288 .L0 
+     /tmp/cca2kZUO.s:449    .text:000000000000028c .L0 
+GAS LISTING /tmp/cca2kZUO.s 			page 18
+
+
+     /tmp/cca2kZUO.s:455    .text:0000000000000290 .L0 
+     /tmp/cca2kZUO.s:456    .text:0000000000000290 .L0 
+     /tmp/cca2kZUO.s:472    .text:00000000000002ac .L0 
+     /tmp/cca2kZUO.s:473    .text:00000000000002ac .L0 
+     /tmp/cca2kZUO.s:483    .text:00000000000002c4 .L0 
+     /tmp/cca2kZUO.s:533    .bss:0000000000000008 _ZN17ConsoleController8rxBufferE
+     /tmp/cca2kZUO.s:529    .bss:0000000000000000 _ZN17ConsoleController8txBufferE
+     /tmp/cca2kZUO.s:526    .bss:0000000000000000 .LANCHOR0
+     /tmp/cca2kZUO.s:541    .text:00000000000002c4 .L0 
+     /tmp/cca2kZUO.s:28     .text:0000000000000014 .L0 
+     /tmp/cca2kZUO.s:40     .text:0000000000000024 .L0 
+     /tmp/cca2kZUO.s:47     .text:0000000000000034 .L0 
+     /tmp/cca2kZUO.s:77     .text:0000000000000064 .L0 
+     /tmp/cca2kZUO.s:97     .text:0000000000000088 .L0 
+     /tmp/cca2kZUO.s:147    .text:00000000000000d4 .L0 
+     /tmp/cca2kZUO.s:180    .text:0000000000000104 .L0 
+     /tmp/cca2kZUO.s:253    .text:0000000000000174 .L0 
+     /tmp/cca2kZUO.s:284    .text:00000000000001a8 .L0 
+     /tmp/cca2kZUO.s:291    .text:00000000000001b8 .L0 
+     /tmp/cca2kZUO.s:336    .text:00000000000001f4 .L0 
+     /tmp/cca2kZUO.s:400    .text:0000000000000244 .L0 
+     /tmp/cca2kZUO.s:427    .text:0000000000000264 .L0 
+     /tmp/cca2kZUO.s:35     .text:0000000000000024 .L3
+     /tmp/cca2kZUO.s:43     .text:0000000000000034 .L2
+     /tmp/cca2kZUO.s:25     .text:0000000000000014 .L5
+     /tmp/cca2kZUO.s:92     .text:0000000000000088 .L7
+     /tmp/cca2kZUO.s:111    .text:00000000000000ac .L6
+     /tmp/cca2kZUO.s:247    .text:0000000000000174 .L19
+     /tmp/cca2kZUO.s:272    .text:000000000000019c .L17
+     /tmp/cca2kZUO.s:225    .text:0000000000000150 .L15
+     /tmp/cca2kZUO.s:266    .text:0000000000000194 .L16
+     /tmp/cca2kZUO.s:260    .text:000000000000018c .L20
+     /tmp/cca2kZUO.s:387    .text:0000000000000230 .LEHB0
+     /tmp/cca2kZUO.s:356    .text:0000000000000214 .LFB29
+     /tmp/cca2kZUO.s:390    .text:0000000000000238 .LEHE0
+     /tmp/cca2kZUO.s:393    .text:000000000000023c .LEHB1
+     /tmp/cca2kZUO.s:398    .text:0000000000000244 .LEHE1
+     /tmp/cca2kZUO.s:448    .text:000000000000028c .L26
+     /tmp/cca2kZUO.s:414    .text:0000000000000250 .LEHB2
+     /tmp/cca2kZUO.s:417    .text:0000000000000258 .LEHE2
+     /tmp/cca2kZUO.s:420    .text:000000000000025c .LEHB3
+     /tmp/cca2kZUO.s:425    .text:0000000000000264 .LEHE3
+     /tmp/cca2kZUO.s:464    .text:00000000000002a8 .L27
+     /tmp/cca2kZUO.s:429    .text:000000000000026c .LEHB4
+     /tmp/cca2kZUO.s:433    .text:0000000000000274 .LEHE4
+     /tmp/cca2kZUO.s:460    .text:00000000000002a0 .LEHB5
+     /tmp/cca2kZUO.s:463    .text:00000000000002a8 .LEHE5
+     /tmp/cca2kZUO.s:477    .text:00000000000002bc .LEHB6
+     /tmp/cca2kZUO.s:480    .text:00000000000002c4 .LEHE6
+     /tmp/cca2kZUO.s:2195   .debug_abbrev:0000000000000000 .Ldebug_abbrev0
+     /tmp/cca2kZUO.s:3679   .debug_str:0000000000000888 .LASF167
+     /tmp/cca2kZUO.s:3639   .debug_str:00000000000007a7 .LASF168
+     /tmp/cca2kZUO.s:3501   .debug_str:00000000000002f4 .LASF169
+     /tmp/cca2kZUO.s:5      .text:0000000000000000 .Ltext0
+     /tmp/cca2kZUO.s:536    .text:00000000000002c4 .Letext0
+     /tmp/cca2kZUO.s:3401   .debug_line:0000000000000000 .Ldebug_line0
+     /tmp/cca2kZUO.s:3523   .debug_str:00000000000003a1 .LASF0
+GAS LISTING /tmp/cca2kZUO.s 			page 19
+
+
+     /tmp/cca2kZUO.s:3545   .debug_str:000000000000045b .LASF1
+     /tmp/cca2kZUO.s:3623   .debug_str:0000000000000756 .LASF2
+     /tmp/cca2kZUO.s:3629   .debug_str:000000000000077a .LASF4
+     /tmp/cca2kZUO.s:3533   .debug_str:00000000000003e6 .LASF3
+     /tmp/cca2kZUO.s:3417   .debug_str:0000000000000086 .LASF5
+     /tmp/cca2kZUO.s:3605   .debug_str:000000000000068a .LASF6
+     /tmp/cca2kZUO.s:3601   .debug_str:0000000000000669 .LASF7
+     /tmp/cca2kZUO.s:3537   .debug_str:000000000000041e .LASF8
+     /tmp/cca2kZUO.s:3497   .debug_str:00000000000002cc .LASF9
+     /tmp/cca2kZUO.s:3509   .debug_str:0000000000000335 .LASF10
+     /tmp/cca2kZUO.s:3447   .debug_str:000000000000015f .LASF11
+     /tmp/cca2kZUO.s:3487   .debug_str:0000000000000298 .LASF12
+     /tmp/cca2kZUO.s:3459   .debug_str:00000000000001b8 .LASF13
+     /tmp/cca2kZUO.s:3445   .debug_str:000000000000014f .LASF14
+     /tmp/cca2kZUO.s:3659   .debug_str:0000000000000833 .LASF15
+     /tmp/cca2kZUO.s:3479   .debug_str:0000000000000257 .LASF16
+     /tmp/cca2kZUO.s:3651   .debug_str:0000000000000804 .LASF17
+     /tmp/cca2kZUO.s:3675   .debug_str:000000000000087a .LASF170
+     /tmp/cca2kZUO.s:3671   .debug_str:000000000000086f .LASF18
+     /tmp/cca2kZUO.s:3641   .debug_str:00000000000007c1 .LASF19
+     /tmp/cca2kZUO.s:3565   .debug_str:0000000000000529 .LASF20
+     /tmp/cca2kZUO.s:3433   .debug_str:00000000000000f6 .LASF21
+     /tmp/cca2kZUO.s:3451   .debug_str:0000000000000173 .LASF22
+     /tmp/cca2kZUO.s:3505   .debug_str:0000000000000327 .LASF23
+     /tmp/cca2kZUO.s:3667   .debug_str:000000000000085c .LASF73
+     /tmp/cca2kZUO.s:3657   .debug_str:0000000000000826 .LASF24
+     /tmp/cca2kZUO.s:3723   .debug_str:0000000000000a81 .LASF26
+     /tmp/cca2kZUO.s:3591   .debug_str:0000000000000623 .LASF171
+     /tmp/cca2kZUO.s:3721   .debug_str:0000000000000a70 .LASF25
+     /tmp/cca2kZUO.s:3535   .debug_str:00000000000003f8 .LASF27
+     /tmp/cca2kZUO.s:3547   .debug_str:000000000000046e .LASF77
+     /tmp/cca2kZUO.s:3683   .debug_str:0000000000000965 .LASF79
+     /tmp/cca2kZUO.s:3485   .debug_str:0000000000000287 .LASF28
+     /tmp/cca2kZUO.s:3439   .debug_str:000000000000011d .LASF30
+     /tmp/cca2kZUO.s:3443   .debug_str:000000000000013e .LASF29
+     /tmp/cca2kZUO.s:3745   .debug_str:0000000000000b35 .LASF31
+     /tmp/cca2kZUO.s:3703   .debug_str:00000000000009ff .LASF40
+     /tmp/cca2kZUO.s:3453   .debug_str:000000000000017c .LASF42
+     /tmp/cca2kZUO.s:3669   .debug_str:0000000000000864 .LASF34
+     /tmp/cca2kZUO.s:3581   .debug_str:00000000000005d8 .LASF36
+     /tmp/cca2kZUO.s:3431   .debug_str:00000000000000ea .LASF32
+     /tmp/cca2kZUO.s:3697   .debug_str:00000000000009c3 .LASF33
+     /tmp/cca2kZUO.s:3549   .debug_str:0000000000000474 .LASF35
+     /tmp/cca2kZUO.s:3681   .debug_str:000000000000094c .LASF37
+     /tmp/cca2kZUO.s:3483   .debug_str:000000000000027a .LASF38
+     /tmp/cca2kZUO.s:3599   .debug_str:000000000000065d .LASF39
+     /tmp/cca2kZUO.s:3405   .debug_str:0000000000000005 .LASF41
+     /tmp/cca2kZUO.s:3589   .debug_str:0000000000000616 .LASF43
+     /tmp/cca2kZUO.s:3437   .debug_str:000000000000010d .LASF44
+     /tmp/cca2kZUO.s:3495   .debug_str:00000000000002c0 .LASF45
+     /tmp/cca2kZUO.s:3649   .debug_str:00000000000007f1 .LASF46
+     /tmp/cca2kZUO.s:3625   .debug_str:0000000000000764 .LASF47
+     /tmp/cca2kZUO.s:3631   .debug_str:0000000000000781 .LASF48
+     /tmp/cca2kZUO.s:3413   .debug_str:000000000000006b .LASF49
+     /tmp/cca2kZUO.s:3637   .debug_str:000000000000079e .LASF50
+     /tmp/cca2kZUO.s:3647   .debug_str:00000000000007dd .LASF51
+     /tmp/cca2kZUO.s:3627   .debug_str:0000000000000771 .LASF52
+GAS LISTING /tmp/cca2kZUO.s 			page 20
+
+
+     /tmp/cca2kZUO.s:3607   .debug_str:0000000000000691 .LASF53
+     /tmp/cca2kZUO.s:3725   .debug_str:0000000000000aa3 .LASF112
+     /tmp/cca2kZUO.s:3403   .debug_str:0000000000000000 .LASF54
+     /tmp/cca2kZUO.s:3737   .debug_str:0000000000000b0a .LASF55
+     /tmp/cca2kZUO.s:3693   .debug_str:00000000000009ac .LASF56
+     /tmp/cca2kZUO.s:3701   .debug_str:00000000000009fa .LASF57
+     /tmp/cca2kZUO.s:3685   .debug_str:0000000000000975 .LASF58
+     /tmp/cca2kZUO.s:3665   .debug_str:0000000000000853 .LASF59
+     /tmp/cca2kZUO.s:3643   .debug_str:00000000000007c9 .LASF60
+     /tmp/cca2kZUO.s:3449   .debug_str:000000000000016e .LASF61
+     /tmp/cca2kZUO.s:3425   .debug_str:00000000000000c8 .LASF62
+     /tmp/cca2kZUO.s:3689   .debug_str:000000000000099d .LASF63
+     /tmp/cca2kZUO.s:3719   .debug_str:0000000000000a5f .LASF64
+     /tmp/cca2kZUO.s:3477   .debug_str:0000000000000251 .LASF65
+     /tmp/cca2kZUO.s:3743   .debug_str:0000000000000b30 .LASF66
+     /tmp/cca2kZUO.s:3491   .debug_str:00000000000002b6 .LASF67
+     /tmp/cca2kZUO.s:3435   .debug_str:00000000000000ff .LASF68
+     /tmp/cca2kZUO.s:3551   .debug_str:0000000000000481 .LASF70
+     /tmp/cca2kZUO.s:3461   .debug_str:00000000000001c8 .LASF150
+     /tmp/cca2kZUO.s:3411   .debug_str:0000000000000043 .LASF152
+     /tmp/cca2kZUO.s:3471   .debug_str:0000000000000226 .LASF69
+     /tmp/cca2kZUO.s:3455   .debug_str:0000000000000197 .LASF71
+     /tmp/cca2kZUO.s:3635   .debug_str:000000000000078d .LASF72
+     /tmp/cca2kZUO.s:3677   .debug_str:0000000000000880 .LASF74
+     /tmp/cca2kZUO.s:3543   .debug_str:0000000000000456 .LASF75
+     /tmp/cca2kZUO.s:3597   .debug_str:000000000000064d .LASF76
+     /tmp/cca2kZUO.s:3587   .debug_str:000000000000060c .LASF133
+     /tmp/cca2kZUO.s:3531   .debug_str:00000000000003de .LASF78
+     /tmp/cca2kZUO.s:3611   .debug_str:00000000000006c4 .LASF80
+     /tmp/cca2kZUO.s:3573   .debug_str:0000000000000577 .LASF81
+     /tmp/cca2kZUO.s:3419   .debug_str:000000000000008d .LASF82
+     /tmp/cca2kZUO.s:3519   .debug_str:0000000000000392 .LASF83
+     /tmp/cca2kZUO.s:3575   .debug_str:0000000000000581 .LASF84
+     /tmp/cca2kZUO.s:3541   .debug_str:0000000000000448 .LASF85
+     /tmp/cca2kZUO.s:3409   .debug_str:000000000000001d .LASF86
+     /tmp/cca2kZUO.s:3615   .debug_str:00000000000006fb .LASF87
+     /tmp/cca2kZUO.s:3707   .debug_str:0000000000000a1d .LASF88
+     /tmp/cca2kZUO.s:3473   .debug_str:000000000000022f .LASF89
+     /tmp/cca2kZUO.s:3517   .debug_str:000000000000037b .LASF90
+     /tmp/cca2kZUO.s:3663   .debug_str:000000000000084c .LASF91
+     /tmp/cca2kZUO.s:3569   .debug_str:0000000000000536 .LASF92
+     /tmp/cca2kZUO.s:3421   .debug_str:00000000000000ae .LASF93
+     /tmp/cca2kZUO.s:3499   .debug_str:00000000000002dc .LASF94
+     /tmp/cca2kZUO.s:3731   .debug_str:0000000000000ad9 .LASF95
+     /tmp/cca2kZUO.s:3747   .debug_str:0000000000000b51 .LASF96
+     /tmp/cca2kZUO.s:3507   .debug_str:000000000000032c .LASF97
+     /tmp/cca2kZUO.s:3527   .debug_str:00000000000003bd .LASF98
+     /tmp/cca2kZUO.s:3513   .debug_str:000000000000035b .LASF99
+     /tmp/cca2kZUO.s:3727   .debug_str:0000000000000abb .LASF100
+     /tmp/cca2kZUO.s:3739   .debug_str:0000000000000b10 .LASF101
+     /tmp/cca2kZUO.s:3741   .debug_str:0000000000000b24 .LASF102
+     /tmp/cca2kZUO.s:3463   .debug_str:00000000000001d6 .LASF103
+     /tmp/cca2kZUO.s:3559   .debug_str:00000000000004ec .LASF104
+     /tmp/cca2kZUO.s:3503   .debug_str:0000000000000312 .LASF105
+     /tmp/cca2kZUO.s:3423   .debug_str:00000000000000b4 .LASF106
+     /tmp/cca2kZUO.s:3579   .debug_str:00000000000005c3 .LASF107
+     /tmp/cca2kZUO.s:3521   .debug_str:000000000000039b .LASF108
+GAS LISTING /tmp/cca2kZUO.s 			page 21
+
+
+     /tmp/cca2kZUO.s:3613   .debug_str:00000000000006e3 .LASF109
+     /tmp/cca2kZUO.s:3407   .debug_str:0000000000000015 .LASF110
+     /tmp/cca2kZUO.s:3713   .debug_str:0000000000000a38 .LASF111
+     /tmp/cca2kZUO.s:3593   .debug_str:0000000000000628 .LASF113
+     /tmp/cca2kZUO.s:3621   .debug_str:0000000000000740 .LASF172
+     /tmp/cca2kZUO.s:3715   .debug_str:0000000000000a52 .LASF114
+     /tmp/cca2kZUO.s:3661   .debug_str:000000000000083f .LASF115
+     /tmp/cca2kZUO.s:3481   .debug_str:000000000000026d .LASF116
+     /tmp/cca2kZUO.s:3457   .debug_str:00000000000001aa .LASF117
+     /tmp/cca2kZUO.s:3749   .debug_str:0000000000000b6a .LASF118
+     /tmp/cca2kZUO.s:3489   .debug_str:00000000000002a7 .LASF119
+     /tmp/cca2kZUO.s:3539   .debug_str:0000000000000431 .LASF120
+     /tmp/cca2kZUO.s:3633   .debug_str:0000000000000786 .LASF121
+     /tmp/cca2kZUO.s:3555   .debug_str:00000000000004a7 .LASF122
+     /tmp/cca2kZUO.s:3441   .debug_str:0000000000000139 .LASF123
+     /tmp/cca2kZUO.s:3515   .debug_str:0000000000000361 .LASF124
+     /tmp/cca2kZUO.s:3653   .debug_str:000000000000081a .LASF125
+     /tmp/cca2kZUO.s:3475   .debug_str:0000000000000234 .LASF126
+     /tmp/cca2kZUO.s:3619   .debug_str:0000000000000729 .LASF127
+     /tmp/cca2kZUO.s:3511   .debug_str:0000000000000343 .LASF128
+     /tmp/cca2kZUO.s:3609   .debug_str:00000000000006ad .LASF129
+     /tmp/cca2kZUO.s:3585   .debug_str:00000000000005f4 .LASF130
+     /tmp/cca2kZUO.s:3415   .debug_str:0000000000000077 .LASF131
+     /tmp/cca2kZUO.s:3695   .debug_str:00000000000009b4 .LASF132
+     /tmp/cca2kZUO.s:3733   .debug_str:0000000000000ae0 .LASF134
+     /tmp/cca2kZUO.s:3691   .debug_str:00000000000009a7 .LASF135
+     /tmp/cca2kZUO.s:3655   .debug_str:0000000000000821 .LASF136
+     /tmp/cca2kZUO.s:3583   .debug_str:00000000000005ef .LASF137
+     /tmp/cca2kZUO.s:3673   .debug_str:0000000000000875 .LASF138
+     /tmp/cca2kZUO.s:3465   .debug_str:00000000000001ea .LASF139
+     /tmp/cca2kZUO.s:3429   .debug_str:00000000000000e5 .LASF140
+     /tmp/cca2kZUO.s:3563   .debug_str:000000000000050b .LASF141
+     /tmp/cca2kZUO.s:3645   .debug_str:00000000000007d6 .LASF142
+     /tmp/cca2kZUO.s:3699   .debug_str:00000000000009da .LASF143
+     /tmp/cca2kZUO.s:3525   .debug_str:00000000000003ae .LASF144
+     /tmp/cca2kZUO.s:3557   .debug_str:00000000000004c3 .LASF145
+     /tmp/cca2kZUO.s:3567   .debug_str:0000000000000531 .LASF146
+     /tmp/cca2kZUO.s:3687   .debug_str:000000000000097f .LASF147
+     /tmp/cca2kZUO.s:3729   .debug_str:0000000000000ad4 .LASF148
+     /tmp/cca2kZUO.s:3735   .debug_str:0000000000000aec .LASF149
+     /tmp/cca2kZUO.s:3553   .debug_str:000000000000049a .LASF151
+     /tmp/cca2kZUO.s:3571   .debug_str:000000000000054f .LASF153
+     /tmp/cca2kZUO.s:3595   .debug_str:000000000000063e .LASF154
+     /tmp/cca2kZUO.s:3617   .debug_str:0000000000000700 .LASF155
+     /tmp/cca2kZUO.s:3709   .debug_str:0000000000000a28 .LASF156
+     /tmp/cca2kZUO.s:3467   .debug_str:00000000000001fc .LASF157
+     /tmp/cca2kZUO.s:3577   .debug_str:00000000000005a2 .LASF158
+     /tmp/cca2kZUO.s:3469   .debug_str:0000000000000205 .LASF159
+     /tmp/cca2kZUO.s:10     .text:0000000000000000 .LFB35
+     /tmp/cca2kZUO.s:56     .text:0000000000000050 .LFE35
+     /tmp/cca2kZUO.s:3237   .debug_loc:0000000000000000 .LLST0
+     /tmp/cca2kZUO.s:3375   .debug_ranges:0000000000000000 .Ldebug_ranges0
+     /tmp/cca2kZUO.s:3251   .debug_loc:0000000000000039 .LLST1
+     /tmp/cca2kZUO.s:42     .text:0000000000000034 .LVL3
+     /tmp/cca2kZUO.s:315    .text:00000000000001d0 .LFB34
+     /tmp/cca2kZUO.s:350    .text:0000000000000214 .LFE34
+     /tmp/cca2kZUO.s:3262   .debug_loc:000000000000006f .LLST8
+GAS LISTING /tmp/cca2kZUO.s 			page 22
+
+
+     /tmp/cca2kZUO.s:330    .text:00000000000001ec .LVL22
+     /tmp/cca2kZUO.s:339    .text:0000000000000204 .LVL25
+     /tmp/cca2kZUO.s:199    .text:0000000000000124 .LFB33
+     /tmp/cca2kZUO.s:309    .text:00000000000001d0 .LFE33
+     /tmp/cca2kZUO.s:3273   .debug_loc:00000000000000a5 .LLST5
+     /tmp/cca2kZUO.s:250    .text:0000000000000174 .LBB32
+     /tmp/cca2kZUO.s:306    .text:00000000000001d0 .LBE32
+     /tmp/cca2kZUO.s:3711   .debug_str:0000000000000a31 .LASF160
+     /tmp/cca2kZUO.s:3284   .debug_loc:00000000000000db .LLST6
+     /tmp/cca2kZUO.s:293    .text:00000000000001c0 .LBB34
+     /tmp/cca2kZUO.s:300    .text:00000000000001c4 .LBE34
+     /tmp/cca2kZUO.s:3295   .debug_loc:0000000000000111 .LLST7
+     /tmp/cca2kZUO.s:265    .text:0000000000000194 .LVL18
+     /tmp/cca2kZUO.s:217    .text:0000000000000144 .LVL12
+     /tmp/cca2kZUO.s:231    .text:000000000000015c .LVL15
+     /tmp/cca2kZUO.s:167    .text:00000000000000f4 .LFB32
+     /tmp/cca2kZUO.s:193    .text:0000000000000124 .LFE32
+     /tmp/cca2kZUO.s:182    .text:0000000000000114 .LVL11
+     /tmp/cca2kZUO.s:132    .text:00000000000000c0 .LFB31
+     /tmp/cca2kZUO.s:161    .text:00000000000000f4 .LFE31
+     /tmp/cca2kZUO.s:3302   .debug_loc:0000000000000134 .LLST4
+     /tmp/cca2kZUO.s:150    .text:00000000000000e4 .LVL10
+     /tmp/cca2kZUO.s:62     .text:0000000000000050 .LFB30
+     /tmp/cca2kZUO.s:126    .text:00000000000000c0 .LFE30
+     /tmp/cca2kZUO.s:84     .text:000000000000007c .LBB27
+     /tmp/cca2kZUO.s:94     .text:0000000000000088 .LBE27
+     /tmp/cca2kZUO.s:3316   .debug_loc:000000000000016d .LLST2
+     /tmp/cca2kZUO.s:91     .text:0000000000000088 .LVL5
+     /tmp/cca2kZUO.s:104    .text:00000000000000a0 .LBB29
+     /tmp/cca2kZUO.s:113    .text:00000000000000ac .LBE29
+     /tmp/cca2kZUO.s:3323   .debug_loc:0000000000000190 .LLST3
+     /tmp/cca2kZUO.s:110    .text:00000000000000ac .LVL7
+     /tmp/cca2kZUO.s:83     .text:000000000000007c .LVL4
+     /tmp/cca2kZUO.s:103    .text:00000000000000a0 .LVL6
+     /tmp/cca2kZUO.s:484    .text:00000000000002c4 .LFE29
+     /tmp/cca2kZUO.s:375    .text:000000000000022c .LBB38
+     /tmp/cca2kZUO.s:3330   .debug_loc:00000000000001b3 .LLST9
+     /tmp/cca2kZUO.s:389    .text:0000000000000238 .LVL27
+     /tmp/cca2kZUO.s:403    .text:000000000000024c .LBB42
+     /tmp/cca2kZUO.s:3339   .debug_loc:00000000000001d9 .LLST10
+     /tmp/cca2kZUO.s:416    .text:0000000000000258 .LVL31
+     /tmp/cca2kZUO.s:452    .text:0000000000000290 .LBB46
+     /tmp/cca2kZUO.s:468    .text:00000000000002ac .LBE46
+     /tmp/cca2kZUO.s:3348   .debug_loc:00000000000001ff .LLST11
+     /tmp/cca2kZUO.s:458    .text:000000000000029c .LVL36
+     /tmp/cca2kZUO.s:469    .text:00000000000002ac .LBB48
+     /tmp/cca2kZUO.s:482    .text:00000000000002c4 .LBE48
+     /tmp/cca2kZUO.s:3355   .debug_loc:0000000000000222 .LLST12
+     /tmp/cca2kZUO.s:475    .text:00000000000002b8 .LVL39
+     /tmp/cca2kZUO.s:397    .text:0000000000000244 .LVL29
+     /tmp/cca2kZUO.s:424    .text:0000000000000264 .LVL33
+     /tmp/cca2kZUO.s:432    .text:0000000000000274 .LVL34
+     /tmp/cca2kZUO.s:462    .text:00000000000002a8 .LVL37
+     /tmp/cca2kZUO.s:479    .text:00000000000002c4 .LVL40
+     /tmp/cca2kZUO.s:3493   .debug_str:00000000000002bb .LASF173
+     /tmp/cca2kZUO.s:3717   .debug_str:0000000000000a59 .LASF161
+     /tmp/cca2kZUO.s:3529   .debug_str:00000000000003d8 .LASF164
+GAS LISTING /tmp/cca2kZUO.s 			page 23
+
+
+     /tmp/cca2kZUO.s:3561   .debug_str:0000000000000500 .LASF162
+     /tmp/cca2kZUO.s:3603   .debug_str:000000000000067c .LASF163
+     /tmp/cca2kZUO.s:3705   .debug_str:0000000000000a0e .LASF165
+     /tmp/cca2kZUO.s:3427   .debug_str:00000000000000cd .LASF166
+     /tmp/cca2kZUO.s:14     .text:0000000000000000 .LVL0
+     /tmp/cca2kZUO.s:24     .text:0000000000000014 .LVL1
+     /tmp/cca2kZUO.s:34     .text:0000000000000024 .LVL2
+     /tmp/cca2kZUO.s:332    .text:00000000000001f0 .LVL23
+     /tmp/cca2kZUO.s:337    .text:00000000000001fc .LVL24
+     /tmp/cca2kZUO.s:219    .text:0000000000000148 .LVL13
+     /tmp/cca2kZUO.s:224    .text:0000000000000150 .LVL14
+     /tmp/cca2kZUO.s:246    .text:0000000000000174 .LVL16
+     /tmp/cca2kZUO.s:259    .text:000000000000018c .LVL17
+     /tmp/cca2kZUO.s:288    .text:00000000000001b8 .LVL19
+     /tmp/cca2kZUO.s:292    .text:00000000000001c0 .LVL20
+     /tmp/cca2kZUO.s:298    .text:00000000000001c4 .LVL21
+     /tmp/cca2kZUO.s:135    .text:00000000000000c0 .LVL8
+     /tmp/cca2kZUO.s:148    .text:00000000000000dc .LVL9
+     /tmp/cca2kZUO.s:374    .text:000000000000022c .LVL26
+     /tmp/cca2kZUO.s:392    .text:000000000000023c .LVL28
+     /tmp/cca2kZUO.s:402    .text:000000000000024c .LVL30
+     /tmp/cca2kZUO.s:419    .text:000000000000025c .LVL32
+     /tmp/cca2kZUO.s:451    .text:0000000000000290 .LVL35
+     /tmp/cca2kZUO.s:466    .text:00000000000002ac .LVL38
+     /tmp/cca2kZUO.s:542    .debug_info:0000000000000000 .Ldebug_info0
+     /tmp/cca2kZUO.s:26     .text:0000000000000014 .LBB25
+     /tmp/cca2kZUO.s:32     .text:0000000000000024 .LBE25
+     /tmp/cca2kZUO.s:37     .text:0000000000000024 .LBB26
+     /tmp/cca2kZUO.s:54     .text:0000000000000050 .LBE26
+     /tmp/cca2kZUO.s:261    .text:000000000000018c .LBB33
+     /tmp/cca2kZUO.s:273    .text:000000000000019c .LBE33
+     /tmp/cca2kZUO.s:281    .text:00000000000001a8 .LBB36
+     /tmp/cca2kZUO.s:305    .text:00000000000001d0 .LBE36
+     /tmp/cca2kZUO.s:379    .text:000000000000022c .LBE38
+     /tmp/cca2kZUO.s:383    .text:000000000000022c .LBB41
+     /tmp/cca2kZUO.s:395    .text:000000000000023c .LBE41
+     /tmp/cca2kZUO.s:407    .text:000000000000024c .LBE42
+     /tmp/cca2kZUO.s:410    .text:000000000000024c .LBB45
+     /tmp/cca2kZUO.s:422    .text:000000000000025c .LBE45
+     /tmp/cca2kZUO.s:487    .gcc_except_table:0000000000000000 .LLSDA29
+
+UNDEFINED SYMBOLS
+CONSOLE_TX_DATA
+_ZN13BoundedBuffer4takeEv
+CONSOLE_STATUS
+_ZN13BoundedBufferD1Ev
+_ZN15MemoryAllocator8mem_freeEPv
+_ZN13BoundedBuffer6appendEc
+plic_claim
+plic_complete
+CONSOLE_RX_DATA
+_Znam
+_ZN3TCB12createThreadEPFvPvES0_Pm
+_ZN15MemoryAllocator9mem_allocEm
+_ZN13BoundedBufferC1Ev
+_Unwind_Resume
+__gxx_personality_v0
+GAS LISTING /tmp/cca2kZUO.s 			page 24
+
+
